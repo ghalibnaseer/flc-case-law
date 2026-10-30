@@ -1,0 +1,20 @@
+Copyright (c) 2026 FLC & Associates LLP. All rights reserved.
+
+The case law database in this repository (including data/cases.json, the
+entry summaries, headings and arrangement) is the intellectual property of
+FLC & Associates LLP. It is published for reference only.
+
+No part of the database may be copied, reproduced, republished, sold or used
+to build another database or service without the prior written permission of
+FLC & Associates LLP.
+
+The summaries are the firm's own research notes. They are not legal advice and
+are not the text of any judgment. Readers must consult the official law report
+and confirm that an authority remains good law before relying on it.
+
+The website code (index.html, assets/, scripts/) may be viewed for the purpose
+of operating this site only.
+
+Third-party components:
+- Marcellus typeface (assets/fonts/marcellus.woff2), copyright the Marcellus
+  Project Authors, licensed under the SIL Open Font License 1.1.

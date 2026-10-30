@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="googlebot" content="noindex, nofollow">
+<title>Case Law Database | FLC &amp; Associates LLP</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="band"></div>
+<header class="masthead">
+  <div class="wrap masthead-inner">
+    <a class="brand" href="#" aria-label="FLC &amp; Associates LLP Case Law Database, home">
+      <img src="assets/mark.png" alt="" class="brand-mark">
+      <span class="brand-text">
+        <span class="brand-name">FLC &amp; ASSOCIATES LLP</span>
+        <span class="brand-tag">Barristers, Lawyers &amp; Consultants</span>
+      </span>
+    </a>
+    <div class="masthead-title">
+      <span class="db-title">Case Law Database</span>
+      <span class="db-meta" id="dbMeta">Loading…</span>
+    </div>
+  </div>
+</header>
+
+<section class="searchbar">
+  <div class="wrap">
+    <form id="searchForm" role="search" autocomplete="off">
+      <label for="q" class="sr-only">Search the database</label>
+      <div class="search-field">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
+        <input id="q" type="search" placeholder="Search by keyword, citation, section or party, e.g. 2026 SCMR 115, medical ocular conflict, s. 497">
+        <button type="button" id="clearQ" class="clear-q" aria-label="Clear search" hidden>&times;</button>
+      </div>
+    </form>
+    <p class="search-hint">Use quotation marks for an exact phrase. All words must appear in an entry.</p>
+  </div>
+</section>
+
+<div class="wrap layout">
+  <aside class="sidebar" id="sidebar" aria-label="Filters">
+    <button class="filters-toggle" id="filtersToggle" aria-expanded="false" aria-controls="filterPanel">Filters</button>
+    <div id="filterPanel" class="filter-panel">
+      <div class="fgroup">
+        <h2 class="fhead">Subject</h2>
+        <ul class="subjects" id="subjectList"></ul>
+      </div>
+      <div class="fgroup" id="topicGroup" hidden>
+        <h2 class="fhead"><label for="fTopic">Topic</label></h2>
+        <select id="fTopic"></select>
+      </div>
+      <div class="fgroup">
+        <h2 class="fhead">Side</h2>
+        <div class="chips" id="sideChips">
+          <button type="button" data-side="" class="chip on">All</button>
+          <button type="button" data-side="Accused" class="chip">Accused</button>
+          <button type="button" data-side="Complainant" class="chip">Complainant</button>
+        </div>
+      </div>
+      <div class="fgroup">
+        <h2 class="fhead"><label for="fCourt">Court</label></h2>
+        <select id="fCourt"></select>
+      </div>
+      <div class="fgroup">
+        <h2 class="fhead"><label for="fOutcome">Outcome</label></h2>
+        <select id="fOutcome"></select>
+      </div>
+      <div class="fgroup">
+        <h2 class="fhead">Year of report</h2>
+        <div class="years">
+          <label class="sr-only" for="fFrom">From year</label><select id="fFrom"></select>
+          <span>to</span>
+          <label class="sr-only" for="fTo">To year</label><select id="fTo"></select>
+        </div>
+      </div>
+      <div class="fgroup">
+        <h2 class="fhead"><label for="fSort">Sort</label></h2>
+        <select id="fSort">
+          <option value="rel">Relevance / database order</option>
+          <option value="new">Newest first</option>
+          <option value="old">Oldest first</option>
+        </select>
+      </div>
+      <button type="button" class="reset" id="resetAll">Reset all filters</button>
+    </div>
+  </aside>
+
+  <main class="results" id="main">
+    <div class="status" id="status" aria-live="polite"></div>
+    <div id="citePanel" class="cite-panel" hidden></div>
+    <ol class="cards" id="cards"></ol>
+    <div class="more" id="moreWrap" hidden><button type="button" id="moreBtn">Show more entries</button></div>
+  </main>
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    <p class="disclaimer"><strong>Disclaimer.</strong> This database is a research aid compiled by FLC &amp; Associates LLP. Summaries are the firm's own notes and are not the text of the judgments. It is not legal advice. Before relying on any authority, read the full judgment from the official report and confirm that it remains good law.</p>
+    <p class="copy">&copy; <span id="yr"></span> FLC &amp; Associates LLP. All rights reserved. Intellectual Property of FLC &amp; Associates LLP. No part of this database may be reproduced or republished without written permission.</p>
+  </div>
+</footer>
+
+<template id="cardTpl">
+  <li class="card">
+    <div class="card-top">
+      <div class="cites"></div>
+      <div class="badges"></div>
+    </div>
+    <div class="meta"></div>
+    <div class="crumb"></div>
+    <div class="body"></div>
+    <button type="button" class="expand" hidden>Show full entry</button>
+    <div class="refs"></div>
+    <div class="actions">
+      <button type="button" class="act copy">Copy citation</button>
+      <a class="act link">Link</a>
+      <span class="id"></span>
+    </div>
+  </li>
+</template>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
