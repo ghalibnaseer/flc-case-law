@@ -30,8 +30,9 @@ GitHub Action: scripts/sync_sheet.py  ->  data/cases.json  ->  GitHub Pages
 1. **Pages**: Settings > Pages > Build and deployment > Source: **GitHub Actions**.
 2. **Sheet link**: in the Google Sheet, File > Share > Publish to web > choose the
    **Cases** sheet and **Comma-separated values (.csv)** > Publish. Copy the link.
-3. **Repository variable**: Settings > Secrets and variables > Actions > Variables >
-   New repository variable. Name: `SHEET_CSV_URL`. Value: the link from step 2.
+3. **Repository secret**: Settings > Secrets and variables > Actions > Secrets >
+   New repository secret. Name: `SHEET_CSV_URL`. Value: the link from step 2.
+   (A secret, not a variable, so the link never appears in the public Actions logs.)
 4. Actions > "Sync from Google Sheet and publish" > **Run workflow**.
 
 The site address is shown under Settings > Pages once the first run finishes.

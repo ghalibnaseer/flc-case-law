@@ -19,6 +19,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      SHEET_CSV_URL: ${{ secrets.SHEET_CSV_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -27,11 +29,11 @@ jobs:
           python-version: "3.12"
 
       - name: Pull latest entries from the Google Sheet
-        if: ${{ vars.SHEET_CSV_URL != '' }}
-        run: python scripts/sync_sheet.py "${{ vars.SHEET_CSV_URL }}" data/cases.json
+        if: ${{ env.SHEET_CSV_URL != '' }}
+        run: python scripts/sync_sheet.py "$SHEET_CSV_URL" data/cases.json
 
       - name: Save updated data to the repository
-        if: ${{ vars.SHEET_CSV_URL != '' }}
+        if: ${{ env.SHEET_CSV_URL != '' }}
         run: |
           if [ -n "$(git status --porcelain data/cases.json)" ]; then
             git config user.name "flc-database-bot"
