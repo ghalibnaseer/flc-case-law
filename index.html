@@ -7,10 +7,10 @@
 <meta name="googlebot" content="noindex, nofollow">
 <title>Case Law Database | FLC &amp; Associates LLP</title>
 <link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preload" href="assets/fonts/libre-caslon-text-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-<div class="band"></div>
 <header class="masthead">
   <div class="wrap masthead-inner">
     <a class="brand" href="#" aria-label="FLC &amp; Associates LLP Case Law Database, home">
@@ -24,6 +24,7 @@
       <span class="db-title">Case Law Database</span>
       <span class="db-meta" id="dbMeta">Loading…</span>
     </div>
+    <button type="button" class="list-btn" id="listBtn" aria-pressed="false">My list <span id="listCount">0</span></button>
   </div>
 </header>
 
@@ -44,7 +45,9 @@
 <div class="wrap layout">
   <aside class="sidebar" id="sidebar" aria-label="Filters">
     <button class="filters-toggle" id="filtersToggle" aria-expanded="false" aria-controls="filterPanel">Filters</button>
+    <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
     <div id="filterPanel" class="filter-panel">
+      <div class="sheet-head"><span>Filters</span><button type="button" id="filtersClose" aria-label="Close filters">&times;</button></div>
       <div class="fgroup">
         <h2 class="fhead">Subject</h2>
         <ul class="subjects" id="subjectList"></ul>
@@ -59,6 +62,19 @@
           <button type="button" data-side="" class="chip on">All</button>
           <button type="button" data-side="Accused" class="chip">Accused</button>
           <button type="button" data-side="Complainant" class="chip">Complainant</button>
+        </div>
+      </div>
+      <div class="fgroup">
+        <h2 class="fhead"><label for="fProv">Provision</label></h2>
+        <select id="fProv"></select>
+      </div>
+      <div class="fgroup">
+        <h2 class="fhead">Verification</h2>
+        <div class="chips" id="statusChips">
+          <button type="button" data-status="" class="chip on">All</button>
+          <button type="button" data-status="Verified" class="chip">Verified</button>
+          <button type="button" data-status="Unverified" class="chip">Unverified</button>
+          <button type="button" data-status="Needs correction" class="chip">Under review</button>
         </div>
       </div>
       <div class="fgroup">
@@ -86,12 +102,14 @@
         </select>
       </div>
       <button type="button" class="reset" id="resetAll">Reset all filters</button>
+      <button type="button" class="sheet-done" id="filtersDone">Show entries</button>
     </div>
   </aside>
 
   <main class="results" id="main">
     <div class="status" id="status" aria-live="polite"></div>
     <div id="citePanel" class="cite-panel" hidden></div>
+    <div id="listPanel" class="cite-panel list-panel" hidden></div>
     <ol class="cards" id="cards"></ol>
     <div class="more" id="moreWrap" hidden><button type="button" id="moreBtn">Show more entries</button></div>
   </main>
@@ -106,6 +124,7 @@
 
 <template id="cardTpl">
   <li class="card">
+    <h3 class="heading" hidden></h3>
     <div class="card-top">
       <div class="cites"></div>
       <div class="badges"></div>
@@ -116,6 +135,7 @@
     <button type="button" class="expand" hidden>Show full entry</button>
     <div class="refs"></div>
     <div class="actions">
+      <button type="button" class="act save" aria-pressed="false">Save</button>
       <button type="button" class="act copy">Copy citation</button>
       <a class="act link">Link</a>
       <span class="id"></span>

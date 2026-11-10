@@ -3,7 +3,11 @@
   'use strict';
 
   var PAGE = 40;
-  var state = { q: '', subject: '', topic: '', side: '', court: '', outcome: '', from: '', to: '', sort: 'rel', cite: '', id: '' };
+  var state = { q: '', subject: '', topic: '', side: '', prov: '', status: '', court: '', outcome: '', from: '', to: '', sort: 'rel', cite: '', id: '', saved: '' };
+  var RESET = { q: '', subject: '', topic: '', side: '', prov: '', status: '', court: '', outcome: '', from: '', to: '', sort: 'rel', saved: '' };
+  var SAVE_KEY = 'flc-saved-entries', saved = loadSaved();
+  function loadSaved() { try { var a = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function storeSaved() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(saved)); } catch (e) {} }
   var DB = [], shown = PAGE, byCite = {};
   var $ = function (id) { return document.getElementById(id); };
 
@@ -28,7 +32,7 @@
     DB = data.records.map(function (r, i) {
       r._i = i;
       var cites = r.citations.concat(r.relied, r.contrary);
-      r._hay = [r.text, r.topic, r.subject, r.title, r.court, r.outcome, (r.judges || []).join(' '),
+      r._hay = [r.heading, r.text, r.topic, r.subject, r.title, r.court, r.outcome, (r.judges || []).join(' '),
         (r.provisions || []).join(' '), cites.join(' ')].join(' ').toLowerCase();
       r._compact = compact(r._hay);
       r.citations.forEach(function (c) { (byCite[c] = byCite[c] || { main: [], rel: [], con: [] }).main.push(r); });
@@ -70,6 +74,12 @@
     var years = uniq(DB.map(function (r) { return r.year; })).sort();
     fillSelect($('fFrom'), 'Any', years.map(String));
     fillSelect($('fTo'), 'Any', years.slice().reverse().map(String));
+    var pm = {};
+    DB.forEach(function (r) { (r.provisions || []).forEach(function (p) { pm[p] = (pm[p] || 0) + 1; }); });
+    var provs = Object.keys(pm).sort(function (a, b) { return pm[b] - pm[a] || a.localeCompare(b, 'en', { numeric: true }); });
+    $('fProv').innerHTML = '<option value="">Any provision</option>' + provs.map(function (p) {
+      return '<option value="' + esc(p) + '">' + esc(p) + ' (' + pm[p] + ')</option>';
+    }).join('');
   }
   function buildTopics() {
     var g = $('topicGroup');
@@ -108,6 +118,7 @@
       var tc = compact(t);
       if (cites.indexOf(tc) >= 0) s += 6;
       if ((r.title || '').toLowerCase().indexOf(t) >= 0) s += 4;
+      if ((r.heading || '').toLowerCase().indexOf(t) >= 0) s += 4;
       if ((r.topic || '').toLowerCase().indexOf(t) >= 0) s += 3;
       if (r.text.toLowerCase().indexOf(t) >= 0) s += 1;
     });
@@ -121,7 +132,10 @@
       if (state.cite) return r.citations.indexOf(state.cite) >= 0 || r.relied.indexOf(state.cite) >= 0 || r.contrary.indexOf(state.cite) >= 0;
       if (state.subject && r.subject !== state.subject) return false;
       if (state.topic && (r.topic || 'General') !== state.topic) return false;
+      if (state.saved && saved.indexOf(r.id) < 0) return false;
       if (state.side && r.side !== state.side) return false;
+      if (state.prov && (r.provisions || []).indexOf(state.prov) < 0) return false;
+      if (state.status && r.status !== state.status) return false;
       if (state.court && r.court !== state.court) return false;
       if (state.outcome && r.outcome !== state.outcome) return false;
       if (state.from && (!r.year || r.year < +state.from)) return false;
@@ -156,10 +170,14 @@
     var res = filtered(), list = res.list, ts = res.ts;
     renderStatus(list.length);
     renderCitePanel();
+    renderListPanel(list);
+    $('filtersDone').textContent = 'Show ' + list.length + (list.length === 1 ? ' entry' : ' entries');
+    $('listCount').textContent = saved.length;
+    $('listBtn').setAttribute('aria-pressed', state.saved ? 'true' : 'false');
     var ol = $('cards');
     ol.innerHTML = '';
     if (!list.length) {
-      ol.innerHTML = '<li class="empty">No entries match. Try fewer words, or clear a filter.</li>';
+      ol.innerHTML = '<li class="empty">' + (state.saved && !saved.length ? 'Your list is empty. Press Save on an entry to add it here.' : 'No entries match. Try fewer words, or clear a filter.') + '</li>';
       $('moreWrap').hidden = true;
       return;
     }
@@ -172,6 +190,7 @@
   function card(r, ts, tpl) {
     var li = tpl.content.firstElementChild.cloneNode(true);
     li.id = r.id;
+    if (r.heading) { var hd = li.querySelector('.heading'); hd.innerHTML = hl(r.heading, ts); hd.hidden = false; li.classList.add('has-heading'); }
     var c = li.querySelector('.cites');
     c.innerHTML = r.citations.length
       ? r.citations.map(function (k) { return '<span class="c" data-cite="' + esc(k) + '" title="Show all entries referring to ' + esc(k) + '">' + hl(k, ts) + '</span>'; }).join('<span class="sep">|</span>')
@@ -181,6 +200,7 @@
     if (r.side === 'Complainant') b.push('<span class="badge b-com">Complainant side</span>');
     if (r.outcome) b.push('<span class="badge b-out">' + esc(r.outcome) + '</span>');
     if (r.status === 'Verified') b.push('<span class="badge b-ok" title="Citation checked against the report">Verified</span>');
+    if (r.status === 'Unverified') b.push('<span class="badge b-unv" title="Not yet checked against the report">Unverified</span>');
     if (r.status === 'Needs correction') b.push('<span class="badge b-rev" title="This entry is being checked by the firm">Under review</span>');
     li.querySelector('.badges').innerHTML = b.join('');
     var meta = [];
@@ -213,6 +233,15 @@
     if (others) refs.push('<div class="refrow"><span class="lbl">Also cited in</span><button type="button" class="ref" data-cite="' + esc(r.citations[0]) + '">' + others + ' other entr' + (others === 1 ? 'y' : 'ies') + '</button></div>');
     li.querySelector('.refs').innerHTML = refs.join('');
     li.querySelector('.copy').addEventListener('click', function () { copy(citeText(r)); });
+    var sv = li.querySelector('.save');
+    var paint = function () { var on = saved.indexOf(r.id) >= 0; sv.textContent = on ? 'Saved' : 'Save'; sv.classList.toggle('on', on); sv.setAttribute('aria-pressed', on ? 'true' : 'false'); };
+    paint();
+    sv.addEventListener('click', function () {
+      var i = saved.indexOf(r.id);
+      if (i >= 0) saved.splice(i, 1); else saved.push(r.id);
+      storeSaved();
+      if (state.saved) render(); else { paint(); $('listCount').textContent = saved.length; }
+    });
     var a = li.querySelector('.link');
     a.href = '#id=' + encodeURIComponent(r.id);
     li.querySelector('.id').textContent = r.id;
@@ -252,10 +281,13 @@
     if (state.id) p.push(pill('Entry ' + state.id, 'id'));
     if (state.cite) p.push(pill('Citation: ' + state.cite, 'cite'));
     if (state.id || state.cite) { $('status').innerHTML = '<span><strong>' + n + '</strong> of ' + DB.length + ' entries</span>' + p.join(''); return; }
+    if (state.saved) p.push(pill('My list', 'saved'));
     if (state.q) p.push(pill('“' + state.q.replace(/^"|"$/g, '') + '”', 'q'));
     if (state.subject) p.push(pill(state.subject, 'subject'));
     if (state.topic) p.push(pill(state.topic, 'topic'));
     if (state.side) p.push(pill(state.side + ' side', 'side'));
+    if (state.prov) p.push(pill(state.prov, 'prov'));
+    if (state.status) p.push(pill(state.status === 'Needs correction' ? 'Under review' : state.status, 'status'));
     if (state.court) p.push(pill(state.court, 'court'));
     if (state.outcome) p.push(pill(state.outcome, 'outcome'));
     if (state.from || state.to) p.push(pill((state.from || '…') + '–' + (state.to || '…'), 'years'));
@@ -273,6 +305,14 @@
     el.hidden = false;
   }
 
+  function renderListPanel(list) {
+    var el = $('listPanel');
+    if (!state.saved || state.id || state.cite) { el.hidden = true; return; }
+    el.innerHTML = '<h2>My list</h2><p>Entries you have saved on this device. They are not shared with anyone else.</p>' +
+      (list.length ? '<div class="list-actions"><button type="button" data-list="copy">Copy all citations</button><button type="button" data-list="print">Print list</button><button type="button" data-list="clear">Clear list</button></div>' : '');
+    el.hidden = false;
+  }
+
   /* ---------- state & events ---------- */
   function syncControls() {
     $('q').value = state.q;
@@ -284,6 +324,10 @@
     Array.prototype.forEach.call(document.querySelectorAll('#sideChips .chip'), function (b) {
       b.classList.toggle('on', b.getAttribute('data-side') === state.side);
     });
+    Array.prototype.forEach.call(document.querySelectorAll('#statusChips .chip'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-status') === state.status);
+    });
+    $('fProv').value = state.prov;
     $('fCourt').value = state.court; $('fOutcome').value = state.outcome;
     $('fFrom').value = state.from; $('fTo').value = state.to; $('fSort').value = state.sort;
   }
@@ -336,13 +380,41 @@
       var b = e.target.closest('button'); if (!b) return;
       go({ side: b.getAttribute('data-side') });
     });
+    $('statusChips').addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      go({ status: b.getAttribute('data-status') });
+    });
+    $('fProv').addEventListener('change', function (e) { go({ prov: e.target.value }); });
+    $('listBtn').addEventListener('click', function () {
+      var c = {}; Object.keys(RESET).forEach(function (k) { c[k] = RESET[k]; });
+      c.saved = state.saved ? '' : '1';
+      go(c);
+    });
+    $('listPanel').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-list]'); if (!b) return;
+      var k = b.getAttribute('data-list');
+      if (k === 'copy') copy(filtered().list.map(citeText).join('\n'));
+      if (k === 'print') { shown = 9999; render(); window.print(); }
+      if (k === 'clear') { saved = []; storeSaved(); render(); }
+    });
+    var sheet = function (open) {
+      $('filterPanel').classList.toggle('open', open);
+      $('sheetBackdrop').hidden = !open;
+      document.body.classList.toggle('sheet-open', open);
+      $('filtersToggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    $('filtersDone').addEventListener('click', function () { sheet(false); });
+    $('filtersClose').addEventListener('click', function () { sheet(false); });
+    $('sheetBackdrop').addEventListener('click', function () { sheet(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') sheet(false); });
+    $('filtersToggle').addEventListener('click', function () { sheet(!$('filterPanel').classList.contains('open')); });
     $('fCourt').addEventListener('change', function (e) { go({ court: e.target.value }); });
     $('fOutcome').addEventListener('change', function (e) { go({ outcome: e.target.value }); });
     $('fFrom').addEventListener('change', function (e) { go({ from: e.target.value }); });
     $('fTo').addEventListener('change', function (e) { go({ to: e.target.value }); });
     $('fSort').addEventListener('change', function (e) { set({ sort: e.target.value }); });
     $('resetAll').addEventListener('click', function () {
-      go({ q: '', subject: '', topic: '', side: '', court: '', outcome: '', from: '', to: '', sort: 'rel' });
+      go(JSON.parse(JSON.stringify(RESET)));
     });
     $('moreBtn').addEventListener('click', function () { shown += PAGE; render(); });
     $('status').addEventListener('click', function (e) {
@@ -354,18 +426,14 @@
     });
     $('cards').addEventListener('click', function (e) {
       var el = e.target.closest('[data-cite]');
-      if (el) { go({ cite: el.getAttribute('data-cite') }); return; }
+      if (el) { go({ cite: el.getAttribute('data-cite'), saved: '' }); return; }
       var s = e.target.closest('.crumb [data-subject]');
       if (s) go({ q: '', subject: s.getAttribute('data-subject'), topic: s.getAttribute('data-topic') || '' });
-    });
-    $('filtersToggle').addEventListener('click', function () {
-      var p = $('filterPanel'), open = p.classList.toggle('open');
-      this.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
     window.addEventListener('hashchange', function () { readHash(); shown = PAGE; render(); });
     document.querySelector('.brand').addEventListener('click', function (e) {
       e.preventDefault();
-      go({ q: '', subject: '', topic: '', side: '', court: '', outcome: '', from: '', to: '', sort: 'rel' });
+      go(JSON.parse(JSON.stringify(RESET)));
     });
   }
 })();
