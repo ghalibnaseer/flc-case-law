@@ -7,13 +7,14 @@ on:
   push:
     branches: [main]
 
+# Publishing is done by Cloudflare Pages, which deploys every push to main
+# (including the data commits made below) behind the shared password in
+# functions/_middleware.js. GitHub Pages is no longer used.
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: sync
   cancel-in-progress: false
 
 jobs:
@@ -44,18 +45,3 @@ jobs:
           else
             echo "No changes in the sheet."
           fi
-
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4

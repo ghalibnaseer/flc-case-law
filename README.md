@@ -52,3 +52,11 @@ than 10 usable rows are found.
 python3 -m http.server 8000      # then open http://localhost:8000
 python3 scripts/sync_sheet.py path/or/url/to/sheet.csv data/cases.json
 ```
+
+## Hosting and access (from November 2026)
+
+The database is served by Cloudflare Pages at https://caselawdatabase.flcassociates.com, behind one shared username and password.
+
+- `functions/_middleware.js` checks the username and password on Cloudflare's server before any page or data file is sent. The credentials are the encrypted variables `DB_USER` and `DB_PASSWORD` in the Cloudflare Pages project; to change the password, edit `DB_PASSWORD` there and redeploy.
+- Cloudflare deploys every push to `main`, including the data commits made by the "Sync from Google Sheet and publish" workflow every 6 hours.
+- The repository is private and GitHub Pages is switched off, so the data cannot be read on GitHub either.
