@@ -8,16 +8,16 @@ import re
 SERIES = {
     'SCMR': 'SCMR', 'CLC': 'CLC', 'YLR': 'YLR', 'MLD': 'MLD', 'CLD': 'CLD',
     'PTD': 'PTD', 'SCJ': 'SCJ', 'CLJ': 'CLJ', 'PSC': 'PSC', 'PLC': 'PLC',
-    'PCRLJ': 'PCrLJ', 'PCRLJ.': 'PCrLJ', 'CRLJ': 'CrLJ', 'SD': 'SD', 'LHC': 'LHC',
+    'PCRLJ': 'PCrLJ', 'PCRLJ.': 'PCrLJ', 'CRLJ': 'CrLJ', 'SD': 'SD', 'LHC': 'LHC', 'SCP': 'SCP',
 }
-SERIES_RE = (r'(?:SCMR|CLC|YLR|MLD|CLD|PTD|SCJ|CLJ|PSC|PLC(?:\s*\(?C\.?S\.?\)?)?|'
+SERIES_RE = (r'(?:SCMR|SCP|CLC|YLR|MLD|CLD|PTD|SCJ|CLJ|PSC|PLC(?:\s*\(?C\.?S\.?\)?)?|'
              r'P\.?\s?C\s?r?\.?\s?R?\s?L\.?\s?J\.?|PCRLJ|PCrLJ|P\.Cr\.\s?LJ|CRLJ|Cr\.?\s?L\.?J\.?|SD|LHC)')
 
 # Court / qualifier tokens that may sit between series and page, or after the page
 COURT_RE = (r'(?:SC\s?\(Pak\.\)|HC\s?AJ\s?&\s?K|SC\s?AJ\s?&\s?K|AJ\s?&\s?K|SC|Lahore|Lah\.?|LAH|LHC|'
             r'Islamabad|ISB|Isb|Karachi|Kar\.?|KAR|Sindh|SINDH|Peshawar|Pesh\.?|PESH|'
-            r'Balochistan|BALOCHISTAN|Balochsitan|Bal\.?|BAL|Quetta|Q\.?|GB|FSC|FC|PC|Dacca|Dac\.?|BJ|'
-            r'RWP|DI\s?Khan\s?\(Pesh\)|CrC|Cr\.\s?C\.|\((?:Lah|Pesh|Kar)\.?\)|Civil|Cr\.|DB|\(DB\)|CS)')
+            r'Balochistan|BALOCHISTAN|Balochsitan|Bal\.?|BAL|Quetta|Q\.?|GB|FSC|FCC|FC|PC|Dacca|Dac\.?|BJ|'
+            r'RWP|DI\s?Khan\s?\(Pesh\)|CrC|Cr\.\s?C\.?|\((?:Lah|Pesh|Kar)\.?\)|Civil|Cr\.|DB|\(DB\)|CS)')
 
 PAGE = r'(?:pg\.?\s?)?\d{1,4}(?:\s*/\s*\d{1,4})*'
 
@@ -40,7 +40,7 @@ PAT_ILR = re.compile(r'ILR\s+(?P<vol>\d+)\s+(?P<court>Lah)\.?\s+(?P<page>\d+)')
 
 COURT_NAMES = [
     (r'HC\s?AJ\s?&\s?K', 'AJ&K High Court'), (r'SC\s?AJ\s?&\s?K', 'AJ&K Supreme Court'),
-    (r'AJ\s?&\s?K', 'AJ&K'), (r'\bFSC\b', 'Federal Shariat Court'),
+    (r'AJ\s?&\s?K', 'AJ&K'), (r'\bFSC\b', 'Federal Shariat Court'), (r'\bFCC\b', 'Federal Constitutional Court'),
     (r'\bSC\b', 'Supreme Court'), (r'\bLHC\b|\bLah|LAH|Lahore|\bRWP\b|Multan', 'Lahore High Court'),
     (r'\bISB\b|\bIsb\b|Islamabad', 'Islamabad High Court'), (r'Sindh|SINDH|\bKar\b|KAR|Karachi', 'Sindh High Court'),
     (r'Pesh|PESH|Peshawar|DI\s?Khan', 'Peshawar High Court'),
@@ -115,7 +115,7 @@ def parse(text):
             continue
         year, ser, mid, page, post = m.group('year'), norm_series(m.group('series')), m.group('mid') or '', m.group('page'), m.group('post') or ''
         court = court_of(mid + ' ' + post)
-        if ser == 'SCMR':
+        if ser in ('SCMR', 'SCP'):
             court = 'Supreme Court'
         issues = []
         if ser == 'CrLJ':
@@ -168,7 +168,7 @@ def court_short(c):
         (r'HC\s?AJ\s?&\s?K', 'AJ&K'), (r'SC\s?AJ\s?&\s?K', 'SC AJ&K'), (r'^SC\s?\(Pak\.\)$|^SC$|^SC\b', 'SC'),
         (r'Lah|LAH|Lahore', 'Lah'), (r'ISB|Isb|Islamabad', 'Isb'), (r'Kar|KAR|Karachi|Sindh|SINDH', 'Kar'),
         (r'Pesh|PESH|Peshawar', 'Pesh'), (r'Bal|BAL|Balochistan|BALOCHISTAN', 'Bal'), (r'^Q\.?$|Quetta', 'Quetta'),
-        (r'FSC', 'FSC'), (r'^FC$', 'FC'), (r'^PC$', 'PC'), (r'Dac', 'Dacca'), (r'^BJ$', 'BJ'), (r'GB', 'GB'),
+        (r'FSC', 'FSC'), (r'FCC', 'FCC'), (r'^FC$', 'FC'), (r'^PC$', 'PC'), (r'Dac', 'Dacca'), (r'^BJ$', 'BJ'), (r'GB', 'GB'),
     ]
     for pat, name in table:
         if re.search(pat, c):
