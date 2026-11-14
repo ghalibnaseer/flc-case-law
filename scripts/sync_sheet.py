@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import citations as C          # noqa: E402
 from extract import extract_fields  # noqa: E402
+from provisions import normalise_list, normalise_court  # noqa: E402
 
 COLUMNS = ['ID', 'Subject', 'Topic', 'Side', 'Entry', 'Citations', 'Relied Upon', 'Contrary Authority',
            'Case Title', 'Court', 'Judges', 'Outcome', 'Provisions', 'Status', 'Review Note', 'Updated',
@@ -93,10 +94,10 @@ def main():
             id=rid, subject=subject, topic=row.get('Topic', ''), side=side,
             heading=row.get('Heading', ''), text=entry,
             citations=cites, relied=relied, contrary=contrary,
-            title=row.get('Case Title') or auto['title'], court=court, year=year,
+            title=row.get('Case Title') or auto['title'], court=normalise_court(court), year=year,
             judges=split_list(row.get('Judges')) or auto['judges'],
             outcome=row.get('Outcome') or auto['outcome'],
-            provisions=split_list(row.get('Provisions')) or auto['provisions'],
+            provisions=normalise_list(split_list(row.get('Provisions')) or auto['provisions']),
             status=status, updated=row.get('Updated', ''),
         ))
 

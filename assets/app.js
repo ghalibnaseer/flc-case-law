@@ -4,6 +4,7 @@
 
   var PAGE = 40;
   var state = { q: '', subject: '', topic: '', side: '', prov: '', status: '', court: '', outcome: '', from: '', to: '', sort: 'rel', cite: '', id: '', saved: '' };
+  var current = state;
   var RESET = { q: '', subject: '', topic: '', side: '', prov: '', status: '', court: '', outcome: '', from: '', to: '', sort: 'rel', saved: '' };
   var SAVE_KEY = 'flc-saved-entries', saved = loadSaved();
   function loadSaved() { try { var a = JSON.parse(localStorage.getItem(SAVE_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
@@ -24,6 +25,7 @@
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(init)
     .catch(function () {
+      $('cards').innerHTML = '';
       $('status').innerHTML = '<div class="empty">The database could not be loaded. Please refresh the page.</div>';
       $('dbMeta').textContent = '';
     });
@@ -99,16 +101,49 @@
   }
 
   /* ---------- search ---------- */
+  /* Words people type around a section number or a case name, which the entries often leave out. */
+  var FILLER = {};
+  'section sections sec sec. s s. ss ss. u/s article articles art art. arts of the a an and & under read with in on v v. vs vs. versus'
+    .split(' ').forEach(function (w) { FILLER[w] = 1; });
+  /* Abbreviations and the full names they stand for: either form finds both. */
+  var SYNONYMS = [
+    ['ppc', 'pakistan penal code', 'penal code'], ['crpc', 'cr.p.c', 'code of criminal procedure', 'criminal procedure code', 'criminal procedure'],
+    ['cpc', 'c.p.c', 'code of civil procedure', 'civil procedure code', 'civil procedure'],
+    ['qso', 'qanun-e-shahadat order', 'qanun-e-shahadat', 'qanun e shahadat'], ['cnsa', 'narcotic substances'], ['peca', 'electronic crimes'],
+    ['mflo', 'muslim family laws'], ['fir', 'f.i.r', 'first information report'],
+    ['lhc', 'lahore high court'], ['ihc', 'islamabad high court'], ['shc', 'sindh high court'],
+    ['phc', 'peshawar high court'], ['bhc', 'balochistan high court'], ['fcc', 'federal constitutional court'],
+    ['dna', 'd.n.a'], ['atc', 'anti-terrorism court'], ['ata', 'anti-terrorism act']
+  ];
+  var SYN = {}, PHRASES = [];
+  SYNONYMS.forEach(function (g) {
+    g.forEach(function (w) { SYN[w] = g; if (/\s/.test(w)) PHRASES.push([w, g[0]]); });
+  });
+  PHRASES.sort(function (a, b) { return b[0].length - a[0].length; });
+
   function terms(q) {
-    var out = [], re = /"([^"]+)"|(\S+)/g, m;
-    while ((m = re.exec(q))) out.push((m[1] || m[2]).toLowerCase());
-    return out.filter(function (t) { return t.length > 0; });
+    var out = [], re = /"([^"]+)"|(\S+)/g, m, all = [];
+    if (q.indexOf('"') < 0) {   // a full name typed in words counts as its abbreviation
+      q = q.toLowerCase();
+      PHRASES.forEach(function (p) { q = q.split(p[0]).join(p[1]); });
+    }
+    while ((m = re.exec(q))) {
+      var t = (m[1] || m[2]).toLowerCase();
+      if (!t) continue;
+      all.push(t);
+      if (m[1] || !FILLER[t]) out.push(t);
+    }
+    return out.length ? out : all;   // a search made only of filler words is searched as typed
+  }
+  function hasTerm(r, t) {
+    var alts = SYN[t] || [t];
+    for (var i = 0; i < alts.length; i++) {
+      if (r._hay.indexOf(alts[i]) >= 0 || r._compact.indexOf(compact(alts[i])) >= 0) return true;
+    }
+    return false;
   }
   function matches(r, ts) {
-    for (var i = 0; i < ts.length; i++) {
-      var t = ts[i];
-      if (r._hay.indexOf(t) < 0 && r._compact.indexOf(compact(t)) < 0) return false;
-    }
+    for (var i = 0; i < ts.length; i++) if (!hasTerm(r, ts[i])) return false;
     return true;
   }
   function score(r, ts, qc) {
@@ -125,7 +160,8 @@
     return s;
   }
 
-  function filtered() {
+  function filtered(st) {
+    var state = st || current;
     var ts = terms(state.q), qc = compact(state.q);
     var list = DB.filter(function (r) {
       if (state.id) return r.id === state.id;
@@ -146,7 +182,7 @@
     if (state.sort === 'new' || state.sort === 'old') {
       var dir = state.sort === 'new' ? -1 : 1;
       list.sort(function (a, b) { return ((a.year || 0) - (b.year || 0)) * dir || a._i - b._i; });
-    } else if (ts.length) {
+    } else if (ts.length && !st) {
       list.forEach(function (r) { r._s = score(r, ts, qc); });
       list.sort(function (a, b) { return b._s - a._s || a._i - b._i; });
     }
@@ -157,9 +193,14 @@
   function hl(text, ts) {
     var h = esc(text);
     if (!ts.length) return h;
-    ts.slice().sort(function (a, b) { return b.length - a.length; }).forEach(function (t) {
+    var words = [];
+    ts.forEach(function (t) { (SYN[t] || [t]).forEach(function (w) { if (words.indexOf(w) < 0) words.push(w); }); });
+    var quote = function (x) { return esc(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); };
+    words.sort(function (a, b) { return b.length - a.length; }).forEach(function (t) {
       if (t.length < 2) return;
-      var re = new RegExp('(' + esc(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')(?![^<]*>)', 'gi');
+      var src = quote(t), c = compact(t);
+      if (/\d/.test(t) && c.length > 1 && c.length <= 24) src = c.split('').map(quote).join('[\\s.,:;()\\-\\/]*');
+      var re = new RegExp('(' + src + ')(?![^<]*>)', 'gi');
       h = h.replace(re, '<mark>$1</mark>');
     });
     return h;
@@ -177,7 +218,9 @@
     var ol = $('cards');
     ol.innerHTML = '';
     if (!list.length) {
-      ol.innerHTML = '<li class="empty">' + (state.saved && !saved.length ? 'Your list is empty. Press Save on an entry to add it here.' : 'No entries match. Try fewer words, or clear a filter.') + '</li>';
+      ol.innerHTML = state.saved && !saved.length
+        ? '<li class="empty">Your list is empty. Press Save on an entry to add it here.</li>'
+        : noResults(ts);
       $('moreWrap').hidden = true;
       return;
     }
@@ -185,6 +228,38 @@
     list.slice(0, shown).forEach(function (r) { ol.appendChild(card(r, ts, tpl)); });
     $('moreWrap').hidden = list.length <= shown;
     $('moreBtn').textContent = 'Show more entries (' + (list.length - shown) + ' remaining)';
+  }
+
+  var FILTER_KEYS = ['subject', 'topic', 'side', 'prov', 'status', 'court', 'outcome', 'from', 'to', 'saved'];
+  function withState(changes) {
+    var c = {}; Object.keys(state).forEach(function (k) { c[k] = state[k]; });
+    Object.keys(changes).forEach(function (k) { c[k] = changes[k]; });
+    return c;
+  }
+  function noResults(ts) {
+    var tries = [];
+    var offer = function (label, changes) {
+      var n = filtered(withState(changes)).list.length;
+      if (n) tries.push('<button type="button" class="try" data-try="' + esc(JSON.stringify(changes)) + '">' + label + ' <span>' + n + (n === 1 ? ' entry' : ' entries') + '</span></button>');
+    };
+    if (!state.id && !state.cite) {
+      var filtersOn = FILTER_KEYS.some(function (k) { return state[k]; });
+      if (filtersOn && state.q) {
+        var clear = {}; FILTER_KEYS.forEach(function (k) { clear[k] = ''; });
+        offer('Search the whole database for “' + esc(state.q) + '”', clear);
+      }
+      if (ts.length > 1) {
+        ts.forEach(function (t) {
+          if (tries.length >= 4) return;
+          var rest = ts.filter(function (x) { return x !== t; }).map(function (x) { return /\s/.test(x) ? '"' + x + '"' : x; }).join(' ');
+          offer('Without “' + esc(t) + '”', { q: rest });
+        });
+      }
+      if (filtersOn && !state.q) offer('Clear the filters', (function () { var c = {}; FILTER_KEYS.forEach(function (k) { c[k] = ''; }); return c; })());
+    }
+    return '<li class="empty"><p class="empty-h">No entries match' + (state.q ? ' “' + esc(state.q) + '”' : '') + '.</p>' +
+      (tries.length ? '<p>Closest searches that do have results:</p><div class="tries">' + tries.join('') + '</div>'
+        : '<p>Try fewer or different words, a citation such as 2026 SCMR 115, or a section number such as 489-F.</p>') + '</li>';
   }
 
   function card(r, ts, tpl) {
@@ -425,6 +500,8 @@
       set(c);
     });
     $('cards').addEventListener('click', function (e) {
+      var tr = e.target.closest('[data-try]');
+      if (tr) { go(JSON.parse(tr.getAttribute('data-try'))); return; }
       var el = e.target.closest('[data-cite]');
       if (el) { go({ cite: el.getAttribute('data-cite'), saved: '' }); return; }
       var s = e.target.closest('.crumb [data-subject]');

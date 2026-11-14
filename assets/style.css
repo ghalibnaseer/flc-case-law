@@ -152,6 +152,25 @@ mark { background: #F3E2B8; color: var(--ink); padding: 0 1px; }
 .more button:hover { border-color: var(--gold); color: var(--gold); }
 .empty { border: 1px dashed var(--rule); padding: 28px; text-align: center; color: var(--ink-2); }
 
+/* No results: nearest searches */
+.empty p { margin: 0 0 10px; }
+.empty .empty-h { font-family: var(--display); font-size: 22px; color: var(--ink); }
+.tries { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px; }
+.try { border: 1px solid var(--ink); background: none; padding: 8px 14px; font-size: 13.5px; }
+.try span { color: var(--muted); margin-left: 6px; }
+.try:hover { background: var(--sel-bg); color: var(--sel-fg); }
+.try:hover span { color: #D5CFC7; }
+
+/* Loading placeholders */
+.loading { color: var(--muted); }
+.skeleton { display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
+.sk { display: block; height: 12px; width: 100%; max-width: 46rem; background: linear-gradient(90deg, var(--stone) 25%, #F7F3EA 37%, var(--stone) 63%); background-size: 400% 100%; animation: sk 1.4s ease infinite; }
+.sk-h { height: 22px; width: 62%; }
+.sk-c { width: 9rem; }
+.sk-s { width: 40%; }
+@keyframes sk { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+
 .foot { background: var(--deep); color: #CFCAC5; font-size: 13px; padding: 24px 0 28px; border-top: 1px solid var(--rule); }
 .foot p { margin: 0 0 8px; max-width: 900px; }
 .foot strong { color: #F1EDE4; }

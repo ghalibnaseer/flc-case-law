@@ -55,7 +55,9 @@ export async function onRequest({ request, env, next }) {
 
   const res = await next();
   const out = new Response(res.body, res);
-  out.headers.set("Cache-Control", "private, no-store");
+  // "no-cache" lets the browser keep a copy but makes it check with the server (and so pass
+  // the password check) before every use. A repeat visit then downloads only what has changed.
+  out.headers.set("Cache-Control", "private, no-cache");
   out.headers.set("X-Robots-Tag", "noindex, nofollow");
   out.headers.set("X-Frame-Options", "DENY");
   out.headers.set("Referrer-Policy", "no-referrer");

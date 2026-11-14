@@ -107,10 +107,15 @@
   </aside>
 
   <main class="results" id="main">
-    <div class="status" id="status" aria-live="polite"></div>
+    <div class="status" id="status" aria-live="polite"><span class="loading">Loading the database…</span></div>
     <div id="citePanel" class="cite-panel" hidden></div>
     <div id="listPanel" class="cite-panel list-panel" hidden></div>
-    <ol class="cards" id="cards"></ol>
+    <ol class="cards" id="cards">
+      <li class="card skeleton" aria-hidden="true"><span class="sk sk-h"></span><span class="sk sk-c"></span><span class="sk"></span><span class="sk"></span><span class="sk sk-s"></span></li>
+      <li class="card skeleton" aria-hidden="true"><span class="sk sk-h"></span><span class="sk sk-c"></span><span class="sk"></span><span class="sk"></span><span class="sk sk-s"></span></li>
+      <li class="card skeleton" aria-hidden="true"><span class="sk sk-h"></span><span class="sk sk-c"></span><span class="sk"></span><span class="sk"></span><span class="sk sk-s"></span></li>
+      <li class="card skeleton" aria-hidden="true"><span class="sk sk-h"></span><span class="sk sk-c"></span><span class="sk"></span><span class="sk"></span><span class="sk sk-s"></span></li>
+    </ol>
     <div class="more" id="moreWrap" hidden><button type="button" id="moreBtn">Show more entries</button></div>
   </main>
 </div>
